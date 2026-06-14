@@ -13,13 +13,18 @@ import os
 import re
 import shutil
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from content import PAGES
-from content.site import (BASE_URL, BRAND, NAV, PHONE, PHONE_DISPLAY)
+from content.site import (BASE_URL, BRAND, NAV, PHONE, PHONE_DISPLAY,
+                          INDEXNOW_KEY)
+from content import magazine
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+SITE = BASE_URL.rstrip("/")
+BUILD_DATE = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 MIN_INDEX_CHARS = 2000
 
 
@@ -163,6 +168,7 @@ def render_page(page: dict) -> str:
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/style.css">
+<link rel="alternate" type="application/rss+xml" title="{BRAND} 매거진" href="/rss.xml">
 {extra_head}</head>
 <body>
 <header class="site-header">
@@ -250,12 +256,70 @@ def render_page(page: dict) -> str:
 """
 
 
+def _rfc822(date_str: str) -> str:
+    """'YYYY-MM-DD' → RFC-822 (KST). RSS pubDate 형식."""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        dt = datetime.now()
+    return dt.strftime("%a, %d %b %Y 09:00:00 +0900")
+
+
+def write_sitemap(entries) -> None:
+    """entries: [(loc, lastmod), ...]"""
+    urls = "\n".join(
+        f"  <url><loc>{loc}</loc><lastmod>{lastmod}</lastmod></url>"
+        for loc, lastmod in entries
+    )
+    with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
+        f.write(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f"{urls}\n</urlset>\n"
+        )
+
+
+def write_rss() -> None:
+    """매거진 아티클로 RSS 2.0 피드(rss.xml)를 생성한다."""
+    posts = [p for p in magazine.PAGES if p.get("date")]
+    posts.sort(key=lambda p: p["date"], reverse=True)
+    last_build = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    items = []
+    for p in posts:
+        link = f"{SITE}/{p['path']}"
+        items.append(
+            "    <item>\n"
+            f"      <title>{html.escape(p['title'])}</title>\n"
+            f"      <link>{link}</link>\n"
+            f"      <guid isPermaLink=\"true\">{link}</guid>\n"
+            f"      <pubDate>{_rfc822(p['date'])}</pubDate>\n"
+            f"      <description>{html.escape(p['desc'])}</description>\n"
+            "    </item>"
+        )
+    items_xml = "\n".join(items)
+    with open(os.path.join(ROOT, "rss.xml"), "w", encoding="utf-8") as f:
+        f.write(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n'
+            "  <channel>\n"
+            f"    <title>{html.escape(BRAND)} 매거진</title>\n"
+            f"    <link>{SITE}/magazine/</link>\n"
+            f'    <atom:link href="{SITE}/rss.xml" rel="self" type="application/rss+xml"/>\n'
+            "    <description>중랑 출장마사지·홈타이 — 마사지·휴식·컨디션 관리 가이드</description>\n"
+            "    <language>ko</language>\n"
+            f"    <lastBuildDate>{last_build}</lastBuildDate>\n"
+            f"{items_xml}\n"
+            "  </channel>\n</rss>\n"
+        )
+
+
 def build() -> None:
     report = []
-    sitemap_urls = []
+    sitemap_entries = []
+    article_dates = {p["path"]: p.get("date") for p in magazine.PAGES}
 
     for page in PAGES:
-        path = page["path"]  # "" 또는 "nowon-gu/wolgye-dong/" 형태
+        path = page["path"]  # "" 또는 "jungnang/myeonmok-chuljangmassage/" 형태
         out_dir = os.path.join(ROOT, path)
         os.makedirs(out_dir, exist_ok=True)
         html_out = render_page(page)
@@ -265,26 +329,23 @@ def build() -> None:
         chars = text_length(page["body"])
         noindex = page.get("noindex", False) or chars < MIN_INDEX_CHARS
         if not noindex:
-            sitemap_urls.append(BASE_URL.rstrip("/") + "/" + path)
+            lastmod = article_dates.get(path) or BUILD_DATE
+            sitemap_entries.append((SITE + "/" + path, lastmod))
         report.append((path or "/", chars, "noindex" if noindex else "index"))
 
-    # sitemap.xml
-    urls = "\n".join(
-        f"  <url><loc>{u}</loc></url>" for u in sitemap_urls
-    )
-    with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
-        f.write(
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            f"{urls}\n</urlset>\n"
-        )
+    write_sitemap(sitemap_entries)
+    write_rss()
 
-    # robots.txt
+    # robots.txt — 모든 봇 허용 + 사이트맵 위치 고지(구글봇·네이버 Yeti·빙봇 공통)
     with open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(
             "User-agent: *\nAllow: /\n\n"
-            f"Sitemap: {BASE_URL.rstrip('/')}/sitemap.xml\n"
+            f"Sitemap: {SITE}/sitemap.xml\n"
         )
+
+    # IndexNow 키 파일 — 빙·네이버·얀덱스 즉시 색인 통보용 (루트에 {key}.txt)
+    with open(os.path.join(ROOT, f"{INDEXNOW_KEY}.txt"), "w", encoding="utf-8") as f:
+        f.write(INDEXNOW_KEY + "\n")
 
     # .nojekyll (GitHub Pages)
     open(os.path.join(ROOT, ".nojekyll"), "w").close()
@@ -294,7 +355,10 @@ def build() -> None:
     for p, c, r in sorted(report):
         flag = "" if (r == "noindex" or MIN_INDEX_CHARS <= c <= 2500) else "  ⚠"
         print(f"{p.ljust(width)}  {str(c).rjust(5)}  {r}{flag}")
-    print(f"\n{len(report)} pages built, {len(sitemap_urls)} in sitemap.")
+    rss_n = len([p for p in magazine.PAGES if p.get("date")])
+    print(f"\n{len(report)} pages built, {len(sitemap_entries)} in sitemap, "
+          f"{rss_n} in rss.xml.")
+    print(f"IndexNow key file: /{INDEXNOW_KEY}.txt")
 
 
 if __name__ == "__main__":

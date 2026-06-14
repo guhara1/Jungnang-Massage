@@ -1,0 +1,3 @@
+# scripts/google_indexing.py 전용 (indexnow_submit.py 는 표준 라이브러리만 사용)
+google-auth>=2.0
+requests>=2.28
