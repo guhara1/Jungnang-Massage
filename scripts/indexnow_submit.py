@@ -10,7 +10,7 @@
   python3 scripts/indexnow_submit.py
 
   # 특정 URL만 제출 (글 새로 올렸을 때)
-  python3 scripts/indexnow_submit.py https://jungnang-massage.pages.dev/magazine/new-post/
+  python3 scripts/indexnow_submit.py https://jungnang-massage.netlify.app/magazine/new-post/
 
 표준 라이브러리만 사용한다. 의존성 없음.
 """

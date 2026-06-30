@@ -9,6 +9,7 @@ content/ 패키지의 페이지 정의를 읽어 정적 HTML을 생성한다.
   - 지역+역+테마 조합 경로는 생성 자체가 불가능한 구조
 """
 import html
+import json
 import os
 import re
 import shutil
@@ -19,7 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from content import PAGES
 from content.site import (BASE_URL, BRAND, NAV, PHONE, PHONE_DISPLAY,
-                          INDEXNOW_KEY)
+                          INDEXNOW_KEY, NAVER_VERIFY, RATING_VALUE,
+                          RATING_COUNT, REVIEWS)
 from content import magazine
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -109,6 +111,228 @@ def render_toc(items) -> str:
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# 구조화 데이터(JSON-LD) — 모든 페이지에 사업자·후기·평점·이동경로·FAQ 자동 삽입.
+# 페이지별로 본문에서 FAQ를 추출하고 경로에 따라 Service 노드를 더한다.
+# ─────────────────────────────────────────────────────────────────────────
+
+_FAQ_RE = re.compile(r'<div class="faq-item">\s*<h3>(.*?)</h3>\s*(.*?)\s*</div>', re.S)
+
+
+def _plain(fragment: str) -> str:
+    """HTML 조각에서 태그를 제거하고 엔티티를 풀어 한 줄 텍스트로 만든다."""
+    text = re.sub(r"<[^>]+>", " ", fragment)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _business_node() -> dict:
+    return {
+        "@type": ["HealthAndBeautyBusiness", "LocalBusiness"],
+        "@id": SITE + "/#business",
+        "name": BRAND,
+        "url": SITE + "/",
+        "telephone": PHONE,
+        "image": SITE + "/assets/og-image.png",
+        "logo": SITE + "/assets/icon-512.png",
+        "priceRange": "₩70,000~₩200,000",
+        "currenciesAccepted": "KRW",
+        "paymentAccepted": "현금, 계좌이체, 카드",
+        "description": "서울 중랑구 전지역 방문 출장마사지·홈타이 예약 안내. "
+                       "면목동·상봉동·중화동·묵동·망우동·신내동 및 주요 역세권 방문 관리.",
+        "areaServed": {"@type": "AdministrativeArea", "name": "서울특별시 중랑구"},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "중랑구",
+            "addressRegion": "서울특별시",
+            "addressCountry": "KR",
+        },
+        "openingHoursSpecification": [{
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday",
+                          "Friday", "Saturday", "Sunday"],
+            "opens": "00:00", "closes": "23:59",
+        }],
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": RATING_VALUE,
+            "reviewCount": RATING_COUNT,
+            "bestRating": "5", "worstRating": "1",
+        },
+        "review": [
+            {
+                "@type": "Review",
+                "author": {"@type": "Person", "name": r["author"]},
+                "datePublished": r["date"],
+                "reviewRating": {
+                    "@type": "Rating", "ratingValue": r["rating"],
+                    "bestRating": "5", "worstRating": "1",
+                },
+                "reviewBody": r["body"],
+            }
+            for r in REVIEWS
+        ],
+    }
+
+
+def _website_node() -> dict:
+    return {
+        "@type": "WebSite",
+        "@id": SITE + "/#website",
+        "url": SITE + "/",
+        "name": BRAND,
+        "inLanguage": "ko",
+        "publisher": {"@id": SITE + "/#business"},
+    }
+
+
+def _breadcrumb_node(page: dict, canonical: str):
+    crumbs = page.get("breadcrumb") or []
+    items = [{"@type": "ListItem", "position": 1, "name": "홈", "item": SITE + "/"}]
+    pos = 2
+    for label, href in crumbs:
+        url = (SITE + href) if href else canonical
+        items.append({"@type": "ListItem", "position": pos, "name": label, "item": url})
+        pos += 1
+    if len(items) < 2:
+        return None
+    return {
+        "@type": "BreadcrumbList",
+        "@id": canonical + "#breadcrumb",
+        "itemListElement": items,
+    }
+
+
+def _webpage_node(page: dict, canonical: str) -> dict:
+    return {
+        "@type": "WebPage",
+        "@id": canonical + "#webpage",
+        "url": canonical,
+        "name": _plain(page["title"]),
+        "description": _plain(page["desc"]),
+        "inLanguage": "ko",
+        "isPartOf": {"@id": SITE + "/#website"},
+        "about": {"@id": SITE + "/#business"},
+    }
+
+
+def _faq_node(body: str, canonical: str):
+    entries = []
+    for q, a in _FAQ_RE.findall(body):
+        q, a = _plain(q), _plain(a)
+        if q and a:
+            entries.append({
+                "@type": "Question",
+                "name": q,
+                "acceptedAnswer": {"@type": "Answer", "text": a},
+            })
+    if not entries:
+        return None
+    return {
+        "@type": "FAQPage",
+        "@id": canonical + "#faq",
+        "mainEntity": entries,
+    }
+
+
+def _service_node(page: dict, canonical: str):
+    path = page["path"]
+    if path.startswith("jungnang/"):
+        service_type = "출장마사지·홈타이"
+    elif path.startswith("themes/"):
+        service_type = _plain(page["h1"]).replace(" 안내", "")
+    elif path in ("massage/", "courses/"):
+        service_type = "출장마사지·홈타이"
+    else:
+        return None
+    return {
+        "@type": "Service",
+        "@id": canonical + "#service",
+        "serviceType": service_type,
+        "name": _plain(page["h1"]),
+        "provider": {"@id": SITE + "/#business"},
+        "areaServed": {"@type": "AdministrativeArea", "name": "서울특별시 중랑구"},
+        "url": canonical,
+    }
+
+
+def build_jsonld(page: dict, canonical: str) -> str:
+    """페이지 메타데이터로 schema.org @graph JSON-LD 블록을 만든다."""
+    graph = [_business_node(), _website_node(), _webpage_node(page, canonical)]
+    for node in (_breadcrumb_node(page, canonical),
+                 _faq_node(page["body"], canonical),
+                 _service_node(page, canonical)):
+        if node:
+            graph.append(node)
+    payload = {"@context": "https://schema.org", "@graph": graph}
+    return ('<script type="application/ld+json">\n'
+            + json.dumps(payload, ensure_ascii=False, indent=2)
+            + "\n</script>\n")
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# 관련 안내(내부링크) 모듈 — 지역·역·테마 상세 페이지 하단에 롱테일 앵커로
+# 다른 지역/역/테마를 연결한다. NAV 정의에서 목록을 가져와 자동 생성한다.
+# ─────────────────────────────────────────────────────────────────────────
+
+def _nav_children(menu_label: str):
+    for label, href, children in NAV:
+        if label == menu_label:
+            return children
+    return []
+
+
+_AREA_ITEMS = [(l, h) for l, h in _nav_children("지역별 안내")
+               if h.endswith("-chuljangmassage/") and "-station-" not in h]
+_STATION_ITEMS = [(l, h) for l, h in _nav_children("지하철역별 안내")
+                  if h.endswith("-station-chuljangmassage/")]
+_THEME_ITEMS = [(l, h) for l, h in _nav_children("테마별 안내")
+                if h.startswith("/themes/") and h != "/themes/"]
+
+
+def _related_block(heading: str, items, current: str, suffix: str, limit: int) -> str:
+    picks = [(l, h) for l, h in items if h != current][:limit]
+    if not picks:
+        return ""
+    lis = "".join(
+        f'<li><a href="{h}">{l}{suffix}</a></li>' for l, h in picks
+    )
+    return (f'<div class="related-block"><p>{heading}</p>'
+            f'<ul class="link-cloud">{lis}</ul></div>')
+
+
+def related_html(page: dict) -> str:
+    """지역/역/테마 상세 페이지 하단 내부링크 모듈 HTML. 해당 없으면 빈 문자열."""
+    path = page["path"]
+    current = "/" + path
+    blocks = []
+    is_area = (path.startswith("jungnang/") and path.endswith("-chuljangmassage/")
+               and "-station-" not in path)
+    is_station = path.endswith("-station-chuljangmassage/")
+    is_theme = path.startswith("themes/") and path != "themes/"
+
+    if is_area:
+        blocks.append(_related_block("다른 동네 방문 안내", _AREA_ITEMS, current, " 출장마사지·홈타이", 5))
+        blocks.append(_related_block("가까운 지하철역 안내", _STATION_ITEMS, current, " 마사지", 6))
+        blocks.append(_related_block("인기 관리 테마", _THEME_ITEMS, current, "", 7))
+    elif is_station:
+        blocks.append(_related_block("다른 역세권 안내", _STATION_ITEMS, current, " 마사지", 6))
+        blocks.append(_related_block("중랑구 지역별 안내", _AREA_ITEMS, current, " 출장마사지·홈타이", 6))
+        blocks.append(_related_block("인기 관리 테마", _THEME_ITEMS, current, "", 7))
+    elif is_theme:
+        blocks.append(_related_block("다른 관리 테마", _THEME_ITEMS, current, "", 8))
+        blocks.append(_related_block("지역별 방문 안내", _AREA_ITEMS, current, " 출장마사지·홈타이", 6))
+        blocks.append(_related_block("지하철역별 안내", _STATION_ITEMS, current, " 마사지", 6))
+    else:
+        return ""
+
+    body = "".join(b for b in blocks if b)
+    if not body:
+        return ""
+    return ('<section class="related-links" aria-label="관련 안내">'
+            '<h2>중랑 방문 관리 관련 안내</h2>' + body + '</section>')
+
+
 def render_page(page: dict) -> str:
     path = page["path"]
     title = page["title"]
@@ -127,6 +351,8 @@ def render_page(page: dict) -> str:
         else '<meta name="robots" content="index,follow">'
     )
     canonical = BASE_URL.rstrip("/") + "/" + path
+    naver_meta = f'<meta name="naver-site-verification" content="{NAVER_VERIFY}" />\n'
+    schema_jsonld = build_jsonld(page, canonical)
 
     # 히어로가 있는 페이지(메인)는 H1을 히어로 안에서 출력한다.
     if hero:
@@ -139,6 +365,7 @@ def render_page(page: dict) -> str:
     body, toc_items = inject_toc(body)
     toc_html = render_toc(toc_items)
     layout_cls = "page-layout has-toc" if toc_html else "page-layout"
+    body += related_html(page)  # 지역/역/테마 페이지 하단 내부링크 모듈
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -169,7 +396,7 @@ def render_page(page: dict) -> str:
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/style.css">
 <link rel="alternate" type="application/rss+xml" title="{BRAND} 매거진" href="/rss.xml">
-{extra_head}</head>
+{naver_meta}{schema_jsonld}{extra_head}</head>
 <body>
 <header class="site-header">
   <div class="header-accent" aria-hidden="true"></div>
@@ -265,11 +492,25 @@ def _rfc822(date_str: str) -> str:
     return dt.strftime("%a, %d %b %Y 09:00:00 +0900")
 
 
+def _sitemap_meta(path: str):
+    """경로별 changefreq·priority. 색인 우선순위를 검색엔진에 힌트로 전달한다."""
+    if path == "":
+        return "daily", "1.0"
+    if path in ("jungnang/", "jungnang/stations/", "themes/", "magazine/", "reviews/"):
+        return "weekly", "0.9"
+    if path.startswith("jungnang/") or path.startswith("themes/"):
+        return "weekly", "0.8"
+    if path.startswith("magazine/"):
+        return "weekly", "0.7"
+    return "monthly", "0.6"
+
+
 def write_sitemap(entries) -> None:
-    """entries: [(loc, lastmod), ...]"""
+    """entries: [(loc, lastmod, changefreq, priority), ...]"""
     urls = "\n".join(
-        f"  <url><loc>{loc}</loc><lastmod>{lastmod}</lastmod></url>"
-        for loc, lastmod in entries
+        f"  <url><loc>{loc}</loc><lastmod>{lastmod}</lastmod>"
+        f"<changefreq>{cf}</changefreq><priority>{pr}</priority></url>"
+        for loc, lastmod, cf, pr in entries
     )
     with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write(
@@ -330,15 +571,22 @@ def build() -> None:
         noindex = page.get("noindex", False) or chars < MIN_INDEX_CHARS
         if not noindex:
             lastmod = article_dates.get(path) or BUILD_DATE
-            sitemap_entries.append((SITE + "/" + path, lastmod))
+            cf, pr = _sitemap_meta(path)
+            sitemap_entries.append((SITE + "/" + path, lastmod, cf, pr))
         report.append((path or "/", chars, "noindex" if noindex else "index"))
 
     write_sitemap(sitemap_entries)
     write_rss()
 
-    # robots.txt — 모든 봇 허용 + 사이트맵 위치 고지(구글봇·네이버 Yeti·빙봇 공통)
+    # robots.txt — 모든 봇 허용 + 주요 색인 봇 명시 + 사이트맵 위치 고지.
+    # 네이버 Yeti·구글봇·빙봇을 명시해 색인 우선 크롤링을 유도한다.
     with open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(
+            "User-agent: Yeti\nAllow: /\n\n"          # 네이버
+            "User-agent: Googlebot\nAllow: /\n\n"     # 구글
+            "User-agent: Googlebot-Image\nAllow: /\n\n"
+            "User-agent: bingbot\nAllow: /\n\n"       # 빙
+            "User-agent: Daumoa\nAllow: /\n\n"        # 다음
             "User-agent: *\nAllow: /\n\n"
             f"Sitemap: {SITE}/sitemap.xml\n"
         )
