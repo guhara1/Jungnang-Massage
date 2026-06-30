@@ -1,74 +1,8 @@
 # 메인 페이지 — 허브 역할. 모든 키워드를 밀어 넣지 않고 상세 페이지로 연결한다.
+# 사업자·후기·평점·FAQ·이동경로 등 구조화 데이터(JSON-LD)와 네이버 소유확인
+# 메타태그는 build.py 에서 모든 페이지에 자동 삽입한다.
 from .site import BASE_URL, BRAND, PHONE, PHONE_DISPLAY
 from .pricing import PRICING
-
-_JSONLD = f"""<meta name="naver-site-verification" content="3fab398019dc270f2b3539c9c372c22c3b27c6e5" />
-<script type="application/ld+json">
-{{
-  "@context": "https://schema.org",
-  "@type": "HealthAndBeautyBusiness",
-  "name": "{BRAND}",
-  "telephone": "{PHONE}",
-  "url": "{BASE_URL}/",
-  "image": "{BASE_URL}/assets/og-image.png",
-  "description": "중랑구 전지역 방문 출장마사지·홈타이 예약 안내",
-  "areaServed": {{
-    "@type": "AdministrativeArea",
-    "name": "서울특별시 중랑구"
-  }},
-  "openingHours": "Mo-Su 00:00-24:00",
-  "priceRange": "₩90,000 - ₩180,000"
-}}
-</script>
-<script type="application/ld+json">
-{{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {{
-      "@type": "Question",
-      "name": "중랑구 전지역 방문이 가능한가요?",
-      "acceptedAnswer": {{
-        "@type": "Answer",
-        "text": "예약 시간, 정확한 위치, 배정 상황에 따라 가능 여부가 달라집니다. 지역별 안내 페이지에서 면목동, 상봉동, 중화동, 묵동, 망우동, 신내동 기준으로 확인할 수 있습니다."
-      }}
-    }},
-    {{
-      "@type": "Question",
-      "name": "상봉역이나 면목역 근처도 가능한가요?",
-      "acceptedAnswer": {{
-        "@type": "Answer",
-        "text": "주요 역세권은 역 상세 페이지에서 주변 생활권과 함께 안내합니다. 정확한 가능 여부는 예약 시 위치를 기준으로 확인합니다."
-      }}
-    }},
-    {{
-      "@type": "Question",
-      "name": "면목2동과 면목4동은 왜 따로 없나요?",
-      "acceptedAnswer": {{
-        "@type": "Answer",
-        "text": "면목본동부터 면목7동까지는 면목동 대표 페이지에서 통합 안내하여 중복 페이지 위험을 줄입니다."
-      }}
-    }},
-    {{
-      "@type": "Question",
-      "name": "당일 예약도 가능한가요?",
-      "acceptedAnswer": {{
-        "@type": "Answer",
-        "text": "가능할 수 있지만 저녁 시간대와 주말은 문의가 많을 수 있어 사전 예약을 권장합니다."
-      }}
-    }},
-    {{
-      "@type": "Question",
-      "name": "테마별 관리는 어디에서 확인하나요?",
-      "acceptedAnswer": {{
-        "@type": "Answer",
-        "text": "스웨디시, 타이마사지, 홈케어 등 테마별 안내 페이지에서 특징과 추천 대상을 확인할 수 있습니다."
-      }}
-    }}
-  ]
-}}
-</script>
-"""
 
 _HERO = f"""<section class="hero">
   <div class="hero-inner">
@@ -92,6 +26,7 @@ _HERO = f"""<section class="hero">
 _BODY = f"""
 <section id="service">
 <h2>중랑 출장마사지·홈타이 서비스 안내</h2>
+<p class="rating-summary"><span class="stars">★★★★★</span> <span class="score">4.9</span> <span class="count">이용자 후기 212건 기준</span></p>
 <p>중랑구에서 방문 마사지와 홈타이 예약을 찾는 분들을 위해 가능 지역, 예약 절차, 코스 선택 기준, 이용 전 확인사항을 한곳에 정리했습니다. 이 페이지는 중랑구 전체 구조를 설명하는 허브 역할을 하며, 더 자세한 내용은 지역별·지하철역별·테마별 안내 페이지에서 확인하실 수 있습니다. {BRAND}는 예약 확인부터 방문 관리까지 정해진 절차에 따라 진행하며, 처음 이용하시는 분도 어렵지 않게 예약할 수 있도록 각 단계를 명확하게 안내해 드립니다.</p>
 </section>
 
@@ -103,53 +38,53 @@ _BODY = f"""
 <section id="areas">
 <h2>지역별 방문 가능 생활권 안내</h2>
 <p>지역별 안내는 중랑구 대표 동 기준으로 구성됩니다. 각 페이지에서는 해당 생활권의 특징, 가까운 역세권, 방문 전 확인사항, 예약 가능 시간, 어울리는 테마를 동마다 고유한 내용으로 설명합니다. 아래에서 거주하시거나 머무시는 동을 선택해 주세요.</p>
-<ul class="card-grid">
-<li><a href="/jungnang/myeonmok-chuljangmassage/">면목동</a></li>
-<li><a href="/jungnang/sangbong-chuljangmassage/">상봉동</a></li>
-<li><a href="/jungnang/junghwa-chuljangmassage/">중화동</a></li>
-<li><a href="/jungnang/mukdong-chuljangmassage/">묵동</a></li>
-<li><a href="/jungnang/mangwoo-chuljangmassage/">망우동</a></li>
-<li><a href="/jungnang/sinnae-chuljangmassage/">신내동</a></li>
+<ul class="local-grid">
+<li><a href="/jungnang/myeonmok-chuljangmassage/"><strong>면목동 출장마사지·홈타이</strong><span>면목본동~면목7동 통합 · 골목·다세대 밀집 생활권 방문 관리</span></a></li>
+<li><a href="/jungnang/sangbong-chuljangmassage/"><strong>상봉동 출장마사지·홈타이</strong><span>상봉역 환승 거점 · 오피스텔·숙소 심야 방문 안내</span></a></li>
+<li><a href="/jungnang/junghwa-chuljangmassage/"><strong>중화동 출장마사지·홈타이</strong><span>동일로 안쪽 조용한 주택가 자택 방문 관리</span></a></li>
+<li><a href="/jungnang/mukdong-chuljangmassage/"><strong>묵동 출장마사지·홈타이</strong><span>먹골역 아파트·학교 밀집 주거지 홈타이 안내</span></a></li>
+<li><a href="/jungnang/mangwoo-chuljangmassage/"><strong>망우동 출장마사지·홈타이</strong><span>망우역·양원역 인근 차분한 외곽 주거지 방문</span></a></li>
+<li><a href="/jungnang/sinnae-chuljangmassage/"><strong>신내동 출장마사지·홈타이</strong><span>신내지구 대단지 계획 주거지 방문 관리</span></a></li>
 </ul>
-<p>중랑구 전체 구조가 궁금하시면 <a href="/jungnang/">중랑구 전체 안내</a>에서 한눈에 확인하실 수 있습니다.</p>
+<p>중랑구 전체 구조가 궁금하시면 <a href="/jungnang/">중랑구 전체 지역 안내</a>에서 한눈에 확인하실 수 있습니다.</p>
 </section>
 
 <section id="stations">
 <h2>지하철역별 검색 구조 안내</h2>
 <p>지하철역별 안내는 중랑구를 지나는 7호선, 경의중앙선, 경춘선, 6호선 주요 역세권을 기준으로 구성합니다. 각 역 페이지에서는 인근 생활권, 주변 대표 동, 예약 가능 시간, 방문 전 준비사항을 역마다 다르게 설명하며, 역 이름만 바꿔 같은 본문을 반복하지 않습니다. 출구별 페이지나 역과 테마를 조합한 페이지는 만들지 않고, 환승역은 노선이 여러 개라도 페이지는 하나로 운영합니다.</p>
-<ul class="card-grid">
-<li><a href="/jungnang/sangbong-station-chuljangmassage/">상봉역</a></li>
-<li><a href="/jungnang/mangwoo-station-chuljangmassage/">망우역</a></li>
-<li><a href="/jungnang/jungnang-station-chuljangmassage/">중랑역</a></li>
-<li><a href="/jungnang/junghwa-station-chuljangmassage/">중화역</a></li>
-<li><a href="/jungnang/meokgol-station-chuljangmassage/">먹골역</a></li>
-<li><a href="/jungnang/myeonmok-station-chuljangmassage/">면목역</a></li>
-<li><a href="/jungnang/sagajeong-station-chuljangmassage/">사가정역</a></li>
-<li><a href="/jungnang/yongmasan-station-chuljangmassage/">용마산역</a></li>
-<li><a href="/jungnang/bonghwasan-station-chuljangmassage/">봉화산역</a></li>
-<li><a href="/jungnang/sinnae-station-chuljangmassage/">신내역</a></li>
-<li><a href="/jungnang/yangwon-station-chuljangmassage/">양원역</a></li>
+<ul class="local-grid">
+<li><a href="/jungnang/sangbong-station-chuljangmassage/"><strong>상봉역 출장마사지·홈타이</strong><span>7호선·경의중앙선·경춘선 환승, KTX 정차 거점</span></a></li>
+<li><a href="/jungnang/mangwoo-station-chuljangmassage/"><strong>망우역 출장마사지·홈타이</strong><span>경의중앙선·경춘선 망우동·상봉동 인근 방문</span></a></li>
+<li><a href="/jungnang/jungnang-station-chuljangmassage/"><strong>중랑역 출장마사지·홈타이</strong><span>경의중앙선, 중랑천 동쪽 생활권 안내</span></a></li>
+<li><a href="/jungnang/junghwa-station-chuljangmassage/"><strong>중화역 출장마사지·홈타이</strong><span>7호선 중화동 주택가 자택 방문 관리</span></a></li>
+<li><a href="/jungnang/meokgol-station-chuljangmassage/"><strong>먹골역 출장마사지·홈타이</strong><span>7호선 묵동 아파트 단지 인근 홈타이</span></a></li>
+<li><a href="/jungnang/myeonmok-station-chuljangmassage/"><strong>면목역 출장마사지·홈타이</strong><span>7호선 면목동 중심 생활권 방문 안내</span></a></li>
+<li><a href="/jungnang/sagajeong-station-chuljangmassage/"><strong>사가정역 출장마사지·홈타이</strong><span>7호선 사가정로 상권·주거지 인근 방문</span></a></li>
+<li><a href="/jungnang/yongmasan-station-chuljangmassage/"><strong>용마산역 출장마사지·홈타이</strong><span>7호선 용마산 자락 면목동 동측 안내</span></a></li>
+<li><a href="/jungnang/bonghwasan-station-chuljangmassage/"><strong>봉화산역 출장마사지·홈타이</strong><span>6호선 종점, 신내지구 남측 방문 관리</span></a></li>
+<li><a href="/jungnang/sinnae-station-chuljangmassage/"><strong>신내역 출장마사지·홈타이</strong><span>경춘선·6호선 신내지구 대단지 인근</span></a></li>
+<li><a href="/jungnang/yangwon-station-chuljangmassage/"><strong>양원역 출장마사지·홈타이</strong><span>경의중앙선 망우·신내 외곽 생활권</span></a></li>
 </ul>
 </section>
 
 <section id="themes">
 <h2>테마별 관리 안내</h2>
 <p>테마별 안내에서는 관리 유형별 특징, 추천 대상, 예약 전 확인사항을 설명합니다. 홈타이는 자택이나 숙소에서 예약 가능 여부를 먼저 확인한 뒤 이용하는 방문형 관리로, 출장마사지와 함께 자연스럽게 선택하실 수 있습니다. 테마는 각각 독립 페이지로 운영하며, 지역 페이지와 역 페이지에서는 관련 테마로 연결만 해 드립니다. 특정 역과 테마를 조합한 페이지는 운영하지 않으니, 원하시는 관리 유형을 먼저 고른 뒤 예약 시 위치를 알려주시면 됩니다.</p>
-<ul class="card-grid">
-<li><a href="/themes/swedish/">스웨디시</a></li>
-<li><a href="/themes/lomilomi/">로미로미</a></li>
-<li><a href="/themes/thai/">타이마사지</a></li>
-<li><a href="/themes/chinese/">중국마사지</a></li>
-<li><a href="/themes/aroma/">아로마테라피</a></li>
-<li><a href="/themes/homecare/">홈케어</a></li>
-<li><a href="/themes/hotel-style/">호텔식마사지</a></li>
-<li><a href="/themes/foot/">발마사지</a></li>
-<li><a href="/themes/sports/">스포츠·경락</a></li>
-<li><a href="/themes/skincare/">스킨케어</a></li>
-<li><a href="/themes/waxing/">왁싱</a></li>
-<li><a href="/themes/couple/">커플 관리</a></li>
-<li><a href="/themes/24hours/">24시간</a></li>
-<li><a href="/themes/overnight/">수면 가능</a></li>
+<ul class="local-grid">
+<li><a href="/themes/swedish/"><strong>스웨디시 마사지</strong><span>오일을 이용한 부드러운 전신 이완 · 수면 개선</span></a></li>
+<li><a href="/themes/lomilomi/"><strong>로미로미 마사지</strong><span>하와이식 리드미컬한 전신 관리</span></a></li>
+<li><a href="/themes/thai/"><strong>타이마사지</strong><span>스트레칭 중심 · 운동 후 근육 이완</span></a></li>
+<li><a href="/themes/chinese/"><strong>중국마사지(경락)</strong><span>지압·경락 중심의 깊은 압 관리</span></a></li>
+<li><a href="/themes/aroma/"><strong>아로마테라피</strong><span>향과 오일로 긴장 완화·심신 안정</span></a></li>
+<li><a href="/themes/homecare/"><strong>홈케어·홈타이</strong><span>자택·숙소 방문 홈타이 관리</span></a></li>
+<li><a href="/themes/hotel-style/"><strong>호텔식 마사지</strong><span>숙소·호텔 객실 방문 프리미엄 관리</span></a></li>
+<li><a href="/themes/foot/"><strong>발마사지</strong><span>발·종아리 집중 피로 회복</span></a></li>
+<li><a href="/themes/sports/"><strong>스포츠·경락 마사지</strong><span>운동 후 회복·근육 뭉침 관리</span></a></li>
+<li><a href="/themes/skincare/"><strong>스킨케어</strong><span>피부 관리 중심 방문 케어</span></a></li>
+<li><a href="/themes/waxing/"><strong>왁싱</strong><span>방문 왁싱 관리 안내</span></a></li>
+<li><a href="/themes/couple/"><strong>커플 관리</strong><span>두 명 동시 진행 방문 관리</span></a></li>
+<li><a href="/themes/24hours/"><strong>24시간 마사지</strong><span>심야·새벽 예약 가능 방문 관리</span></a></li>
+<li><a href="/themes/overnight/"><strong>수면 가능 관리</strong><span>숙소 장시간·수면 동반 관리 안내</span></a></li>
 </ul>
 </section>
 
@@ -197,6 +132,33 @@ _BODY = f"""
 </div>
 </section>
 
+<section id="popular">
+<h2>지역·역·테마별 인기 안내 바로가기</h2>
+<p>중랑구에서 자주 찾는 방문 관리 주제를 한곳에 모았습니다. 동네 이름, 가까운 역, 받고 싶은 관리 종류 중 익숙한 것을 눌러 상세 안내로 바로 이동하세요.</p>
+<ul class="link-cloud">
+<li><a href="/jungnang/myeonmok-chuljangmassage/">면목동 홈타이</a></li>
+<li><a href="/jungnang/sangbong-chuljangmassage/">상봉동 출장마사지</a></li>
+<li><a href="/jungnang/sinnae-chuljangmassage/">신내동 방문마사지</a></li>
+<li><a href="/jungnang/mangwoo-chuljangmassage/">망우동 홈타이</a></li>
+<li><a href="/jungnang/junghwa-chuljangmassage/">중화동 출장마사지</a></li>
+<li><a href="/jungnang/mukdong-chuljangmassage/">묵동 홈타이</a></li>
+<li><a href="/jungnang/sangbong-station-chuljangmassage/">상봉역 마사지</a></li>
+<li><a href="/jungnang/myeonmok-station-chuljangmassage/">면목역 마사지</a></li>
+<li><a href="/jungnang/sagajeong-station-chuljangmassage/">사가정역 마사지</a></li>
+<li><a href="/jungnang/sinnae-station-chuljangmassage/">신내역 마사지</a></li>
+<li><a href="/themes/swedish/">중랑 스웨디시</a></li>
+<li><a href="/themes/thai/">중랑 타이마사지</a></li>
+<li><a href="/themes/aroma/">중랑 아로마</a></li>
+<li><a href="/themes/homecare/">중랑 홈케어</a></li>
+<li><a href="/themes/couple/">커플 마사지</a></li>
+<li><a href="/themes/24hours/">중랑 24시간 마사지</a></li>
+<li><a href="/themes/overnight/">심야 수면 관리</a></li>
+<li><a href="/courses/">코스·요금 안내</a></li>
+<li><a href="/reviews/">이용 후기 모음</a></li>
+<li><a href="/magazine/">마사지 가이드 매거진</a></li>
+</ul>
+</section>
+
 {PRICING}
 <section id="contact" class="cta">
 <h2>예약문의</h2>
@@ -211,7 +173,6 @@ PAGE = {
     "desc": "중랑 출장마사지·홈타이 예약 전 지역, 역세권, 이용 기준을 쉽게 정리했습니다.",
     "h1": "중랑 출장마사지 · 중랑구 홈타이 지역별 예약 안내",
     "body": _BODY,
-    "extra_head": _JSONLD,
     "breadcrumb": [],
     "hero": _HERO,
 }

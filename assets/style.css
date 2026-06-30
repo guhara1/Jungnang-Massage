@@ -372,6 +372,86 @@ strong { color: var(--gold-soft); font-weight: 700; }
   background: linear-gradient(180deg, #13203a, var(--panel-2));
 }
 
+/* 롱테일 링크 카드 — 키워드 + 한 줄 설명 (메인·관련 안내) */
+.local-grid {
+  display: grid; gap: 12px; margin: 20px 0 8px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  list-style: none; padding: 0; margin-left: 0;
+}
+.local-grid li { margin: 0; }
+.local-grid a {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 16px; height: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px; color: var(--text);
+  transition: 0.18s;
+}
+.local-grid a:hover {
+  border-color: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, #13203a, var(--panel-2));
+}
+.local-grid a strong {
+  font-size: 0.98rem; color: var(--gold-soft); letter-spacing: 0.02em;
+}
+.local-grid a span {
+  font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;
+}
+
+/* 롱테일 인기 검색 링크 클라우드 */
+.link-cloud {
+  display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0 4px;
+  padding: 0; list-style: none;
+}
+.link-cloud li { margin: 0; }
+.link-cloud a {
+  display: inline-block; padding: 8px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-dim); font-size: 0.86rem;
+  transition: 0.16s;
+}
+.link-cloud a:hover {
+  border-color: var(--gold); color: var(--gold-soft);
+  background: rgba(200, 162, 94, 0.07);
+}
+
+/* 관련 안내(내부링크) 모듈 — 본문 섹션 번호/장식을 받지 않는 내비게이션 보조 영역 */
+.page-content section.related-links {
+  margin: 40px 0 8px; padding: 22px 22px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  counter-increment: none;
+}
+.related-links > h2 { margin-top: 4px; font-size: 1.15rem; }
+.related-links h2::before { content: none; }
+.related-links h2::after { display: none; }
+.related-block { margin-bottom: 16px; }
+.related-block > p {
+  margin: 0 0 9px; font-size: 0.9rem; color: var(--text-dim);
+  font-weight: 600; letter-spacing: 0.02em;
+}
+
+/* 별점 요약 배지 */
+.rating-summary {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin: 6px 0 2px; padding: 9px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 999px;
+}
+.rating-summary .stars { color: var(--gold); letter-spacing: 0.12em; }
+.rating-summary .score { font-weight: 700; color: var(--gold-soft); }
+.rating-summary .count { font-size: 0.84rem; color: var(--text-dim); }
+
+@media (max-width: 600px) {
+  .local-grid { grid-template-columns: 1fr; }
+  .related-links { padding: 18px 16px 4px; }
+}
+
 /* 안내 박스 */
 .info-box {
   background: var(--panel-2); border: 1px solid var(--line-gold);

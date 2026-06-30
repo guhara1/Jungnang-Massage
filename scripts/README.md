@@ -13,8 +13,8 @@
 
 1. **네이버 서치어드바이저** (searchadvisor.naver.com)
    - 사이트 등록 → 소유확인(메인페이지 메타태그 이미 삽입됨)
-   - 요청 → 사이트맵 제출: `https://jungnang-massage.pages.dev/sitemap.xml`
-   - 요청 → RSS 제출: `https://jungnang-massage.pages.dev/rss.xml`
+   - 요청 → 사이트맵 제출: `https://jungnang-massage.netlify.app/sitemap.xml`
+   - 요청 → RSS 제출: `https://jungnang-massage.netlify.app/rss.xml`
 2. **구글 서치콘솔** (search.google.com/search-console)
    - 속성 추가 → 소유확인 → Sitemaps에 `sitemap.xml` 제출
 3. **빙 웹마스터** (bing.com/webmasters) — 선택
@@ -28,7 +28,7 @@
 python3 build.py                       # sitemap·키파일 갱신
 python3 scripts/indexnow_submit.py     # sitemap.xml 전체 통보
 # 또는 새 글만:
-python3 scripts/indexnow_submit.py https://jungnang-massage.pages.dev/magazine/새글/
+python3 scripts/indexnow_submit.py https://jungnang-massage.netlify.app/magazine/새글/
 ```
 의존성 없음(표준 라이브러리). 응답 200/202 = 정상 접수.
 키 파일(`/{key}.txt`)이 **배포된 뒤** 통보해야 검증됩니다. 배포 후 실행하세요.

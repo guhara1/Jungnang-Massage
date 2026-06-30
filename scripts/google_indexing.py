@@ -17,7 +17,7 @@
   # sitemap.xml 전체 통보
   python3 scripts/google_indexing.py
   # 특정 URL만
-  python3 scripts/google_indexing.py https://jungnang-massage.pages.dev/magazine/new-post/
+  python3 scripts/google_indexing.py https://jungnang-massage.netlify.app/magazine/new-post/
 
 주의: Indexing API는 공식적으로 JobPosting/BroadcastEvent 대상이지만, 일반
 페이지의 URL_UPMDATED 통보에도 널리 쓰인다. 일일 쿼터(기본 200건)가 있다.

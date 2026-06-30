@@ -1,12 +1,12 @@
 name: 색인 통보 (IndexNow + Google)
 
-# main 브랜치에 push되면 Cloudflare Pages가 재배포된다. 배포가 반영될 시간을
+# main 브랜치에 push되면 Netlify가 재배포된다. 배포가 반영될 시간을
 # 잠깐 둔 뒤, 변경된 사이트의 URL을 IndexNow(빙·네이버·얀덱스)와
 # 구글 Indexing API에 통보한다. 수동 실행(workflow_dispatch)도 가능.
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/happy-newton-sepsc2]
     paths:
       - "content/**"
       - "build.py"
